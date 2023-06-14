@@ -1,0 +1,20 @@
+<!-- TODO -->
+To Do:
+
+<!-- ! -->
+Issues:
+
+<!-- ? -->
+Questions:
+
+<!-- // -->
+Done:
+
+<!-- Documentation -->
+Arduino code in src/main.cpp is used to control the board
+
+Currently the python code is using the PyQtGraph Library to live plot the data as well as provide a UI for recording gestures.
+Gestures are stored in outputs/gesture recordings that store 5 seconds after a countdown of data from the serial reader. It is then stored in a .csv of a user defined name.
+    <!-- ! Note -->
+    The name of the gesture must be inputted by the user before the recording is made as it will not save without a filename given. 
+
