@@ -13,6 +13,8 @@ BUFFER_SIZE = 1024  # Buffer size for serial port reading
 RECORD_DELAY = 3000  # Delay before recording starts (ms)
 RECORD_DURATION = 5000  # Duration of recording (ms)
 
+sensor_placement_dict = {1:"Outer forearm sensor value (1)", 2: "Inner forearm sensor value (2)"} # ! Update if more sensors are added
+
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -83,7 +85,7 @@ class DataPlotter:
         self.toggle_y_axis_button.clicked.connect(self.toggle_y_axis)
 
     def setup_plot(self) -> None:
-        self.plot = [self.win.addPlot(title=f"Sensor {i+1} Data") for i in range(self.reader.num_sensors)]
+        self.plot = [self.win.addPlot(title = sensor_placement_dict[i+1] + " data") for i in range(self.reader.num_sensors)]
         self.curve = [p.plot(pen='y') for p in self.plot]
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update)
@@ -110,7 +112,7 @@ class DataPlotter:
         if file_title:
             file_path = os.path.join('output', 'gesture recordings', f'{file_title}.csv')
             with self.record_lock:
-                df = pd.DataFrame(self.record_data, columns=['timestamp'] + [f'value{i+1}' for i in range(self.reader.num_sensors)])
+                df = pd.DataFrame(self.record_data, columns=['timestamp'] + [sensor_placement_dict[i+1] for i in range(self.reader.num_sensors)])
             df.to_csv(file_path, index=False, chunksize=1000)
             self.label.setText(f'Saved recording as {file_title}.csv')
         else:
@@ -120,7 +122,7 @@ class DataPlotter:
     def toggle_y_axis(self) -> None:
         if self.is_auto_scaled:
             for p in self.plot:
-                p.setYRange(min=0, max=800)
+                p.setYRange(min=-50, max=700)
             self.is_auto_scaled = False
         else:
             for p in self.plot:
