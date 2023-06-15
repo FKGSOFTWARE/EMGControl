@@ -1,32 +1,26 @@
-// #include <Arduino.h>
-
-
-//~~~ Arduino Code for two source ~~~//
-
 #include <Arduino.h>
 
-#define ANALOG_PIN A0  // Analog pin for sensor
+// ! ~~~ Arduino Code for two source ~~~//
 
-void setup() {
-  pinMode(ANALOG_PIN, INPUT);  // Set ANALOG_PIN as input
-  Serial.begin(115200);  // Start serial communication at 115200 bps
-}
+// #define ANALOG_PIN A0  // Analog pin for sensor
 
-void loop() {
-  int val = analogRead(ANALOG_PIN);  // Read the value from sensor connected to ANALOG_PIN
+// void setup() {
+//   pinMode(ANALOG_PIN, INPUT);  // Set ANALOG_PIN as input
+//   Serial.begin(115200);  // Start serial communication at 115200 bps
+// }
+
+// void loop() {
+//   int val = analogRead(ANALOG_PIN);  // Read the value from sensor connected to ANALOG_PIN
   
-  // Get the current time since the program started
-  unsigned long time = micros(); // overflows at 70 minutes
+//   // Get the current time since the program started
+//   unsigned long time = micros(); // overflows at 70 minutes
   
-  // Construct the data string and print it to the Serial Monitor
-  String dataString = String(time) + "," + String(val);
-  Serial.println(dataString);
-}
+//   // Construct the data string and print it to the Serial Monitor
+//   String dataString = String(time) + "," + String(val);
+//   Serial.println(dataString);
+// }
 
-
-
-
-//~~~ Arduino Code for two source ~~~//
+//  ! ~~~ Arduino Code for two sources ~~~//
 
 // void setup() {
 //   Serial.begin(9600); // Start serial communication at 9600 bps
@@ -41,50 +35,34 @@ void loop() {
 //   delayMicroseconds(100000); // delay in micro seconds 1000 micro seconds = 1 nano second = 0.01 seconds
 // }
 
-// // WITH CALIBRATION
+// ! ~~~ Arduino Code for n sources ~~~//
 
-// #define ANALOG_PIN A0  // Analog pin for sensor
-// #define NUM_CALIBRATION_READINGS 10  // Number of readings to take for calibration
+#define NUMBER_OF_SENSORS 2 // Define the number of sensors connected to the Arduino
 
-// // Calibration variables
-// int baseline = 0;
-// float scale = 1.0;
+int analog_pins[NUMBER_OF_SENSORS] = {A0, A1}; // Define an array with the pins connected to the sensors. Change the values to match your own setup.
 
-// // Function declaration for calibrate
-// void calibrate();
-
-// void setup() {
-//   pinMode(ANALOG_PIN, INPUT);  // Set ANALOG_PIN as input
-//   Serial.begin(115200);  // Start serial communication at 115200 bps
-
-//   // Perform calibration at startup
-//   calibrate();
-// }
-
-// void loop() {
-//   int raw_val = analogRead(ANALOG_PIN);  // Read the raw value from sensor connected to ANALOG_PIN
-
-//   // Subtract baseline and apply scale to get calibrated reading
-//   float val = (raw_val - baseline) * scale;
+void setup() {
+  // Set each pin in analog_pins as input
+  for(int i = 0; i < NUMBER_OF_SENSORS; i++) {
+    pinMode(analog_pins[i], INPUT);
+  }
   
-//   // Get the current time since the program started
-//   unsigned long time = micros();
-  
-//   // Construct the data string and print it to the Serial Monitor
-//   String dataString = String(time) + "," + String(val);
-//   Serial.println(dataString);
-// }
+  Serial.begin(115200);  // Start serial communication at 115200 bps
+}
 
-// void calibrate() {
-//   // Get baseline reading
-//   baseline = 0;
-//   for (int i = 0; i < NUM_CALIBRATION_READINGS; i++) {
-//     baseline += analogRead(ANALOG_PIN);
-//     delay(1000);  // Delay between readings
-//   }
-//   baseline /= NUM_CALIBRATION_READINGS;  // Average the readings to get the baseline
+void loop() {
+  // Get the current time since the program started
+  unsigned long time = micros(); // overflows at 70 minutes
 
-//   // TODO: Measure at known levels of activity and calculate scale factor
-//   // This will be specific to your setup and how you can produce known levels of muscle activity
-//   scale = 1.0;
-// }
+  // Start the data string with the time
+  String dataString = String(time);
+
+  // Read the value from each sensor and append it to the data string
+  for(int i = 0; i < NUMBER_OF_SENSORS; i++) {
+    int val = analogRead(analog_pins[i]);
+    dataString += "," + String(val);
+  }
+
+  // Print the data string to the Serial Monitor
+  Serial.println(dataString);
+}
