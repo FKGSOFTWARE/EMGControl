@@ -87,27 +87,31 @@ class ThresholdNotifier:
         outer_disconnected = sum(1 for v in outer_sensor_values if v < 50 or v > 600) >= 15
 
         if inner_disconnected and outer_disconnected:
-            print("both sensors disconnected")
+            print("Both sensors disconnected")
             return
         elif inner_disconnected:
-            print("inner sensor disconnected")
+            print("Inner sensor disconnected")
             return
         elif outer_disconnected:
-            print("outer sensor disconnected")
+            print("Outer sensor disconnected")
+            return
+        
+        if all(300 <= v <= 400 for v in inner_sensor_values) and all(300 <= v <= 400 for v in outer_sensor_values):
+            print("Rest")
             return
 
         # Conditions for "extension"
         if all(0 <= v <= 659 for v in outer_sensor_values) and all(275 <= v <= 425 for v in inner_sensor_values):
-            print("extension")
+            print("Extension")
             return
 
         # Conditions for "flexion"
         if all(0 <= v <= 659 for v in inner_sensor_values) and all(275 <= v <= 425 for v in outer_sensor_values):
-            print("flexion")
+            print("Flexion")
             return
 
         # None of the conditions were met
-        print("rest")
+        print("Bad reading")
 
     def stop(self) -> None:
         self.stop_thread = True
