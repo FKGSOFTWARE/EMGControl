@@ -5,7 +5,7 @@ import pandas as pd
 from queue import Queue
 import os
 import logging
-from PyQt5.QtWidgets import QApplication, QVBoxLayout, QPushButton, QLineEdit, QLabel, QWidget, QSlider
+from PyQt5.QtWidgets import QApplication, QVBoxLayout, QPushButton, QLineEdit, QLabel, QWidget, QSlider, QSpinBox
 from PyQt5.QtCore import Qt
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
@@ -89,6 +89,7 @@ class DataPlotter:
         self.win = pg.GraphicsLayoutWidget()
         self.win.setWindowTitle('Realtime plot')
         layout.addWidget(self.win)
+
         self.record_button = QPushButton('Record Gesture')
         self.toggle_y_axis_button = QPushButton('Toggle Y-Axis Mode')
         self.file_name_edit = QLineEdit()
@@ -97,6 +98,21 @@ class DataPlotter:
         self.container.layout().addWidget(self.file_name_edit)
         self.container.layout().addWidget(self.record_button)
         self.container.layout().addWidget(self.toggle_y_axis_button)
+
+        # Adding QSpinBox for Y-axis positive height
+        self.pos_y_axis_height = QSpinBox()
+        self.pos_y_axis_height.setRange(1, 1000)
+        self.pos_y_axis_height.setValue(700)  # default value
+
+        # Adding QSpinBox for Y-axis negative height
+        self.neg_y_axis_height = QSpinBox()
+        self.neg_y_axis_height.setRange(-1000, -1)
+        self.neg_y_axis_height.setValue(-50)  # default value
+
+        self.container.layout().addWidget(QLabel('Positive Y-Axis Height:'))
+        self.container.layout().addWidget(self.pos_y_axis_height)
+        self.container.layout().addWidget(QLabel('Negative Y-Axis Height:'))
+        self.container.layout().addWidget(self.neg_y_axis_height)
 
         self.delay_slider = QSlider(Qt.Horizontal)
         self.delay_slider.setMinimum(0)
@@ -118,6 +134,25 @@ class DataPlotter:
         self.container.show()
         self.record_button.clicked.connect(self.record_gesture)
         self.toggle_y_axis_button.clicked.connect(self.toggle_y_axis)
+        self.pos_y_axis_height.valueChanged.connect(self.update_y_range)
+        self.neg_y_axis_height.valueChanged.connect(self.update_y_range)
+
+    def update_y_range(self) -> None:
+        if not self.is_auto_scaled:
+            for p in self.plot:
+                p.setYRange(min=self.neg_y_axis_height.value(), max=self.pos_y_axis_height.value())
+
+    def toggle_y_axis(self) -> None:
+        if self.is_auto_scaled:
+            for p in self.plot:
+                p.setYRange(min=self.neg_y_axis_height.value(), max=self.pos_y_axis_height.value())
+            self.is_auto_scaled = False
+        else:
+            for p in self.plot:
+                p.enableAutoRange(axis='y')
+            self.is_auto_scaled = True
+
+
 
     def update_delay(self, value):
         self.delay_label.setText(f"Delay: {value}")
