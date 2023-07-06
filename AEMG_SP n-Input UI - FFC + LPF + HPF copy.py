@@ -31,11 +31,19 @@ class State:
         self.counter = 0
 
 class StateManager:
-    def __init__(self, sensor_num, states: list, widget):
+    def __init__(self, sensor_num, states, widget):
         self.sensor_num = sensor_num
         self.states = states
+        self.current_state = None
         self.widget = widget
-        self.current_state = None  # Track current state with highest count
+
+        self.reset_timer = QtCore.QTimer()
+        self.reset_timer.timeout.connect(self.reset_counters)
+        self.reset_timer.start(500)  # Reset every 0.5 seconds
+
+    def reset_counters(self):
+        for state in self.states:
+            state.counter = 0
 
     def update_state(self, value):
         for state in self.states:
@@ -46,7 +54,17 @@ class StateManager:
 
         if self.current_state is not None:
             self.widget.setText(f"Sensor {self.sensor_num}: {self.current_state.name}")
-            print(f"Sensor {self.sensor_num} current state: {self.current_state.name}") # Posting to the terminal
+            # print(f"Sensor {self.sensor_num} current state: {self.current_state.name}") # Posting to the terminal
+        # print(abs(value), state.threshold, self.current_state.name)
+        print(f"State: {state.name}, Counter: {state.counter}")
+
+    def update_threshold(self, state_name: str, new_threshold: float):
+        for state in self.states:
+            if state.name == state_name:
+                state.threshold = new_threshold
+                print(f"Threshold for {state.name} updated to: {new_threshold}")
+                break
+
 
 class LowPassFilter:
     def __init__(self, alpha: float):
@@ -134,7 +152,7 @@ class DataPlotter:
         self.low_pass_filters = [LowPassFilter(alpha=self.alpha) for _ in range(reader.NUM_OF_SENSORS)]
         self.high_pass_filters = [HighPassFilter(alpha=self.alpha) for _ in range(reader.NUM_OF_SENSORS)]
         self.setup_ui()
-        self.setup_timer()
+        # self.setup_timer()
         self.setup_plot()
         QApplication.instance().aboutToQuit.connect(self.reader.stop)
 
@@ -207,7 +225,7 @@ class DataPlotter:
         self.alpha_slider = QSlider(Qt.Horizontal)
         self.alpha_slider.setMinimum(0)
         self.alpha_slider.setMaximum(100)
-        self.alpha_slider.setValue(self.alpha * 100)
+        self.alpha_slider.setValue(round(self.alpha * 100))
         self.alpha_label = QLabel(f'Alpha: {self.alpha}')
         self.alpha_slider.valueChanged.connect(self.update_alpha)
 
@@ -222,8 +240,14 @@ class DataPlotter:
         self.container.layout().addWidget(QLabel('Sensor 2 threshold:'))
         self.container.layout().addWidget(self.sensor2_threshold_edit)
 
-        self.sensor1_threshold_edit.textChanged.connect(lambda value: self.update_and_reset_states(self.sensor1_extension, value))
-        self.sensor2_threshold_edit.textChanged.connect(lambda value: self.update_and_reset_states(self.sensor2_flexion, value))
+        # self.sensor1_threshold_edit.textChanged.connect(lambda value: self.update_and_reset_states(self.sensor1_extension, value))
+        # self.sensor2_threshold_edit.textChanged.connect(lambda value: self.update_and_reset_states(self.sensor2_flexion, value))
+
+        # self.sensor1_threshold_edit.textChanged.connect(lambda value: self.state_manager1.update_threshold("Extension", float(value)))
+        # self.sensor2_threshold_edit.textChanged.connect(lambda value: self.state_manager2.update_threshold("Flexion", float(value)))
+
+        self.sensor1_threshold_edit.textChanged.connect(lambda value: self.state_manager1.update_threshold("Extension", float(value)))
+        self.sensor2_threshold_edit.textChanged.connect(lambda value: self.state_manager2.update_threshold("Flexion", float(value)))
 
         # Initialize StateManager objects
         self.sensor1_no_signal = State("No signal", 0.0)
