@@ -138,6 +138,16 @@ class DataPlotter:
         self.setup_plot()
         QApplication.instance().aboutToQuit.connect(self.reader.stop)
 
+    def update_and_reset_states(self, state: State, value: str) -> None:
+        """Update state threshold and reset counter"""
+        try:
+            value = float(value)
+            state.threshold = value
+            state.counter = 0
+            print(f"Threshold for {state.name} updated to: {value}")
+        except ValueError:
+            print("Invalid value for threshold. Please enter a float.")
+
     def setup_ui(self) -> None:
         self.app = QApplication([])
         self.container = QWidget()
@@ -231,26 +241,6 @@ class DataPlotter:
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_and_reset_states)
         self.timer.start(500)  # Interval in milliseconds (0.5 seconds)
-
-    def update_and_reset_states(self):
-        # Update state thresholds
-        threshold1 = float(self.sensor1_threshold_edit.text())
-        threshold2 = float(self.sensor2_threshold_edit.text())
-        self.sensor1_extension.threshold = threshold1
-        self.sensor2_flexion.threshold = threshold2
-
-        # Update and reset state counters
-        self.state_manager1.update_state(self.filtered_value1)
-        self.state_manager2.update_state(self.filtered_value2)
-
-        # Reset state counters after updating
-        self.reset_state_counters()
-
-    def reset_state_counters(self):
-        self.sensor1_no_signal.counter = 0
-        self.sensor1_extension.counter = 0
-        self.sensor2_no_signal.counter = 0
-        self.sensor2_flexion.counter = 0
 
     def update_alpha(self, value):
         self.alpha = value / 100.0
