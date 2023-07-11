@@ -8,5 +8,9 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"cSpell.words": [
+			"pygame"
+		]
+	}
 }

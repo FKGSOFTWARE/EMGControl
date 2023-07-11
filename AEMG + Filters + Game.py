@@ -1,3 +1,5 @@
+import queue
+import threading
 import numpy as np
 import serial
 from threading import Thread, Lock
@@ -11,6 +13,7 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
 from collections import deque
 from serial.tools import list_ports
+import Breakgame_attempt_002 as game
 
 # ! Good values for alpha:0.5, Delay: 13/25/37 (roughly), Gain: 1.0
 
@@ -18,8 +21,15 @@ NUM_OF_SENSORS = 2  # ! Number of sensors - check main.cpp for number expected
 BUFFER_SIZE = 1024  # Buffer size for serial port reading
 RECORD_DELAY = 3000  # Delay before recording starts (ms)
 RECORD_DURATION = 5000  # Duration of recording (ms)
+FILTER_DELAY = 25 # Delay for filter (ms)
+FILTER_GAIN = 1.0 # Gain for filter
+FILTER_ALPHA = 0.05 # Alpha for filter
 
 sensor_placement_dict = {1:"Outer forearm sensor value (1)", 2: "Inner forearm sensor value (2)"} # ! Update if more sensors are added
+
+
+# Control tests
+control_queue = queue.Queue()
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -29,6 +39,9 @@ class State:
         self.name = name
         self.threshold = threshold
         self.counter = 0
+
+    def __str__(self):
+        return self.name
 
 class StateManager:
     def __init__(self, sensor_num, states, widget):
@@ -45,31 +58,6 @@ class StateManager:
         for state in self.states:
             state.counter = 0
 
-    # def update_state(self, value):
-    #     for state in self.states:
-    #         if abs(value) > state.threshold:
-    #             state.counter += 1
-    #             if self.current_state is None or state.counter > self.current_state.counter:
-    #                 self.current_state = state
-
-    #     if self.current_state is not None:
-    #         self.widget.setText(f"Sensor {self.sensor_num}: {self.current_state.name}")
-    #         # print(f"Sensor {self.sensor_num} current state: {self.current_state.name}") # Posting to the terminal
-    #     # print(abs(value), state.threshold, self.current_state.name)
-    #     print(f"State: {state.name}, Counter: {state.counter}")
-
-    # def update_state(self, value):
-    #     for state in sorted(self.states, key=lambda s: s.threshold, reverse=True):
-    #         if abs(value) > state.threshold:
-    #             state.counter += 1
-    #             if self.current_state is None or state.counter > self.current_state.counter:
-    #                 self.current_state = state
-    #             break  # Break after the first state whose threshold is crossed
-
-    #     if self.current_state is not None:
-    #         self.widget.setText(f"Sensor {self.sensor_num}: {self.current_state.name}")
-    #     # print(abs(value), state.threshold, self.current_state.name)
-    #     print(f"State: {state.name}, Counter: {state.counter}")
     def update_state(self, value):
         for state in sorted(self.states, key=lambda s: s.threshold, reverse=True):
             if abs(value) > state.threshold:
@@ -81,9 +69,8 @@ class StateManager:
         if self.current_state is not None:
             self.widget.setText(f"Sensor {self.sensor_num}: {self.current_state.name}")
 
-        return ' | '.join([f"Sensor {self.sensor_num}, State: {state.name}, Counter: {format(state.counter, '03d')}" for state in self.states])
-
-
+        # ! Debugging
+        # return ' | '.join([f"Sensor {self.sensor_num}, State: {state.name}, Counter: {format(state.counter, '03d')}" for state in self.states])
 
     def update_threshold(self, state_name: str, new_threshold: float):
         for state in self.states:
@@ -91,6 +78,15 @@ class StateManager:
                 state.threshold = new_threshold
                 print(f"Threshold for {state.name} updated to: {new_threshold}")
                 break
+
+    def get_state_with_highest_count(self):
+        if not self.states:
+            return None  # If there are no states, return None
+
+        # Sort states by counter in descending order and get the first one
+        highest_count_state = sorted(self.states, key=lambda s: s.counter, reverse=True)[0]
+        return (highest_count_state.name, highest_count_state.counter)
+        # return highest_count_state
 
 
 class LowPassFilter:
@@ -174,12 +170,11 @@ class DataPlotter:
         self.record_lock = Lock()
         self.is_recording = False
         self.is_auto_scaled = True
-        self.alpha = 0.1
-        self.comb_filters = [CombFilter(delay=0, gain=0) for _ in range(reader.NUM_OF_SENSORS)]
+        self.alpha = FILTER_ALPHA
+        self.comb_filters = [CombFilter(delay=FILTER_DELAY, gain=FILTER_GAIN) for _ in range(reader.NUM_OF_SENSORS)]
         self.low_pass_filters = [LowPassFilter(alpha=self.alpha) for _ in range(reader.NUM_OF_SENSORS)]
         self.high_pass_filters = [HighPassFilter(alpha=self.alpha) for _ in range(reader.NUM_OF_SENSORS)]
         self.setup_ui()
-        # self.setup_timer()
         self.setup_plot()
         QApplication.instance().aboutToQuit.connect(self.reader.stop)
 
@@ -267,22 +262,16 @@ class DataPlotter:
         self.container.layout().addWidget(QLabel('Sensor 2 threshold:'))
         self.container.layout().addWidget(self.sensor2_threshold_edit)
 
-        # self.sensor1_threshold_edit.textChanged.connect(lambda value: self.update_and_reset_states(self.sensor1_extension, value))
-        # self.sensor2_threshold_edit.textChanged.connect(lambda value: self.update_and_reset_states(self.sensor2_flexion, value))
-
-        # self.sensor1_threshold_edit.textChanged.connect(lambda value: self.state_manager1.update_threshold("Extension", float(value)))
-        # self.sensor2_threshold_edit.textChanged.connect(lambda value: self.state_manager2.update_threshold("Flexion", float(value)))
-
         self.sensor1_threshold_edit.textChanged.connect(lambda value: self.state_manager1.update_threshold("Extension", float(value)))
         self.sensor2_threshold_edit.textChanged.connect(lambda value: self.state_manager2.update_threshold("Flexion", float(value)))
 
         # Initialize StateManager objects
         self.sensor1_no_signal = State("No signal", 0.0)
-        self.sensor1_extension = State("Extension", 0.2)  # Initialize with 0.0 as threshold
+        self.sensor1_extension = State("Extension", 0.01)  # Initialize with 0.0 as threshold
         self.state_manager1 = StateManager(1, [self.sensor1_no_signal, self.sensor1_extension], QLabel())
 
         self.sensor2_no_signal = State("No signal", 0.0)
-        self.sensor2_flexion = State("Flexion", 0.2)  # Initialize with 0.0 as threshold
+        self.sensor2_flexion = State("Flexion", 0.01)  # Initialize with 0.0 as threshold
         self.state_manager2 = StateManager(2, [self.sensor2_no_signal, self.sensor2_flexion], QLabel())
         
         self.container.layout().addWidget(self.state_manager1.widget)
@@ -368,6 +357,9 @@ class DataPlotter:
         return data_array
 
     def update(self) -> None:
+
+        control_variable = "No signal"
+
         while not self.reader.data_queue.empty():
             data = self.reader.data_queue.get()
             self.time_data = self.shift_and_append(self.time_data, data[0])
@@ -379,6 +371,7 @@ class DataPlotter:
                 filtered_value = self.low_pass_filters[i].filter(filtered_value)  # Apply Low Pass filter
                 filtered_value = self.high_pass_filters[i].filter(filtered_value)  # Apply High Pass filter
 
+                
                 # Update state of the sensor based on filtered value
                 if i == 0:
                     self.state_manager1.update_state(filtered_value)
@@ -386,15 +379,32 @@ class DataPlotter:
                     self.state_manager2.update_state(filtered_value)
 
                 self.value_data[i] = self.shift_and_append(self.value_data[i], filtered_value)
-                self.curve[i].setData(self.time_data, self.value_data[i])
 
-                sensor1_info = self.state_manager1.update_state(filtered_value)
-                sensor2_info = self.state_manager2.update_state(filtered_value)
-                print(sensor1_info + ' || ' + sensor2_info)
+                # self.curve[i].setData(self.time_data, self.value_data[i])
+
+                # sensor1_info = self.state_manager1.update_state(filtered_value)
+                # sensor2_info = self.state_manager2.update_state(filtered_value)
+                # print(sensor1_info + ' || ' + sensor2_info)
+
+                # print(self.state_manager1.get_state_with_highest_count())
+                # print(greater_of_two_states(self.state_manager1.get_state_with_highest_count(), self.state_manager2.get_state_with_highest_count())[0])
+                # control_queue.put((greater_of_two_states(self.state_manager1.get_state_with_highest_count(), self.state_manager2.get_state_with_highest_count()))[0])
+                # print(control_queue.qsize())
+
+                control_variable = (greater_of_two_states(self.state_manager1.get_state_with_highest_count(), self.state_manager2.get_state_with_highest_count()))[0]
+                print (control_variable)
+
 
 
     def start(self) -> None:
         QApplication.instance().exec_()
+
+def greater_of_two_states(a, b):
+    # return max(a[1], b[1])
+    if a[1] > b[1]:
+        return a
+    else:
+        return b
 
 def find_com_port(vendor_id=None, product_id=None, device_description=None):
     com_ports = list_ports.comports()
@@ -410,11 +420,20 @@ def find_com_port(vendor_id=None, product_id=None, device_description=None):
 
     raise ValueError("Device not found")
 
+def start_game():
+    game.run_game(control_variable)
+    # game.run_game(control_queue)
+
 if __name__ == "__main__":
     try:
         port = find_com_port(device_description='Arduino')
         reader = SerialReader(port, 115200, NUM_OF_SENSORS)
+
+        game_thread = threading.Thread(target=start_game)
+        game_thread.start()
+ 
         plotter = DataPlotter(reader)
         plotter.start()
+
     except ValueError as e:
         print(e)
