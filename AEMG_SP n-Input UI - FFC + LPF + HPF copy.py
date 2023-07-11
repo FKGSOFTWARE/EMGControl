@@ -45,18 +45,33 @@ class StateManager:
         for state in self.states:
             state.counter = 0
 
+    # def update_state(self, value):
+    #     for state in self.states:
+    #         if abs(value) > state.threshold:
+    #             state.counter += 1
+    #             if self.current_state is None or state.counter > self.current_state.counter:
+    #                 self.current_state = state
+
+    #     if self.current_state is not None:
+    #         self.widget.setText(f"Sensor {self.sensor_num}: {self.current_state.name}")
+    #         # print(f"Sensor {self.sensor_num} current state: {self.current_state.name}") # Posting to the terminal
+    #     # print(abs(value), state.threshold, self.current_state.name)
+    #     print(f"State: {state.name}, Counter: {state.counter}")
+
     def update_state(self, value):
-        for state in self.states:
+        for state in sorted(self.states, key=lambda s: s.threshold, reverse=True):
             if abs(value) > state.threshold:
                 state.counter += 1
                 if self.current_state is None or state.counter > self.current_state.counter:
                     self.current_state = state
+                break  # Break after the first state whose threshold is crossed
 
         if self.current_state is not None:
             self.widget.setText(f"Sensor {self.sensor_num}: {self.current_state.name}")
-            # print(f"Sensor {self.sensor_num} current state: {self.current_state.name}") # Posting to the terminal
         # print(abs(value), state.threshold, self.current_state.name)
         print(f"State: {state.name}, Counter: {state.counter}")
+
+
 
     def update_threshold(self, state_name: str, new_threshold: float):
         for state in self.states:
@@ -380,8 +395,9 @@ def find_com_port(vendor_id=None, product_id=None, device_description=None):
 
 if __name__ == "__main__":
     try:
-        port = find_com_port(device_description='Arduino')
-        reader = SerialReader(port, 115200, NUM_OF_SENSORS)
+        # port = find_com_port(device_description='Arduino')
+        # reader = SerialReader(port, 115200, NUM_OF_SENSORS)
+        reader = SerialReader('COM8', 115200, NUM_OF_SENSORS)
         plotter = DataPlotter(reader)
         plotter.start()
     except ValueError as e:
