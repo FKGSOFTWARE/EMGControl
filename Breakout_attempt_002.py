@@ -2,8 +2,8 @@ import pygame
 import sys
 import queue
 
-# def run_game(control_queue):
-def run_game(control_variable):
+def run_game(control_queue):
+# def run_game(plotter):
 
     # General setup
     pygame.init()
@@ -24,9 +24,9 @@ def run_game(control_variable):
     blocks = [pygame.Rect(50 + 70 * i, 50 + 50 * j, block_width, block_height) for i in range(10) for j in range(4)]
 
     # Game Variables
-    ball_dy = 3
-    ball_dx = 3
-    paddle_speed = 4
+    ball_dy = 2
+    ball_dx = 2
+    paddle_speed = 8
     run_game = True
 
     # Game loop
@@ -38,9 +38,9 @@ def run_game(control_variable):
 
             # Paddle movement
         try:
-            # control = control_queue.get_nowait()
-            control = control_variable
-            print(control)
+            control = control_queue.get_nowait()
+            # control = plotter.get()
+            print("in-game control = ", control)
 
             if control == "Flexion" and paddle.left > 0:
                 print("left")   

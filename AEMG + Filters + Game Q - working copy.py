@@ -1,8 +1,6 @@
 import queue
-import sys
 import threading
 import numpy as np
-import pygame
 import serial
 from threading import Thread, Lock
 import pandas as pd
@@ -13,12 +11,11 @@ from PyQt5.QtWidgets import QApplication, QVBoxLayout, QPushButton, QLineEdit, Q
 from PyQt5.QtCore import Qt, QTimer
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
-from collections import deque
+from collections import Counter, deque
 from serial.tools import list_ports
 import Breakout_attempt_002 as game
 
-# ! Good values for alpha:0.5, Delay: 13/25/37 (roughly), Gain: 1.0
-
+# Constants
 NUM_OF_SENSORS = 2  # ! Number of sensors - check main.cpp for number expected
 BUFFER_SIZE = 1024  # Buffer size for serial port reading
 RECORD_DELAY = 3000  # Delay before recording starts (ms)
@@ -26,27 +23,29 @@ RECORD_DURATION = 5000  # Duration of recording (ms)
 FILTER_DELAY = 25 # Delay for filter (ms)
 FILTER_GAIN = 1.0 # Gain for filter
 FILTER_ALPHA = 0.05 # Alpha for filter
+BAUD_RATE = 115200  # Baud rate for serial communication
 
-sensor_placement_dict = {1:"Outer forearm sensor value (1)", 2: "Inner forearm sensor value (2)"} # ! Update if more sensors are added
+# Sensors dict for UI naming purposes - Update if more sensors are added
+sensor_placement_dict = {1:"Outer forearm sensor value (1)", 2: "Inner forearm sensor value (2)"}
 
-
-# Control tests
-control_queue = queue.Queue()
+# Controls -> Game
+control_queue = queue.Queue(maxsize=1)
+queue_lock = threading.Lock()
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class State:
-    def __init__(self, name: str, threshold: float):
+    def __init__(self, name: str, threshold: float) -> None:
         self.name = name
         self.threshold = threshold
         self.counter = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 class StateManager:
-    def __init__(self, sensor_num, states, widget):
+    def __init__(self, sensor_num, states, widget) -> None:
         self.sensor_num = sensor_num
         self.states = states
         self.current_state = None
@@ -56,11 +55,11 @@ class StateManager:
         self.reset_timer.timeout.connect(self.reset_counters)
         self.reset_timer.start(500)  # Reset every 0.5 seconds
 
-    def reset_counters(self):
+    def reset_counters(self) -> None:
         for state in self.states:
             state.counter = 0
 
-    def update_state(self, value):
+    def update_state(self, value) -> None:
         for state in sorted(self.states, key=lambda s: s.threshold, reverse=True):
             if abs(value) > state.threshold:
                 state.counter += 1
@@ -71,27 +70,23 @@ class StateManager:
         if self.current_state is not None:
             self.widget.setText(f"Sensor {self.sensor_num}: {self.current_state.name}")
 
-        # ! Debugging
-        # return ' | '.join([f"Sensor {self.sensor_num}, State: {state.name}, Counter: {format(state.counter, '03d')}" for state in self.states])
-
-    def update_threshold(self, state_name: str, new_threshold: float):
+    def update_threshold(self, state_name: str, new_threshold: float) -> None:
         for state in self.states:
             if state.name == state_name:
                 state.threshold = new_threshold
                 print(f"Threshold for {state.name} updated to: {new_threshold}")
                 break
 
-    def get_state_with_highest_count(self):
+    def get_state_with_highest_count(self) -> tuple:
         if not self.states:
             return None  # If there are no states, return None
 
         # Sort states by counter in descending order and get the first one
         highest_count_state = sorted(self.states, key=lambda s: s.counter, reverse=True)[0]
         return (highest_count_state.name, highest_count_state.counter)
-        # return highest_count_state
 
 class LowPassFilter:
-    def __init__(self, alpha: float):
+    def __init__(self, alpha: float) -> None:
         self.alpha = alpha
         self.state = 0
 
@@ -100,7 +95,7 @@ class LowPassFilter:
         return self.state
 
 class HighPassFilter:
-    def __init__(self, alpha: float):
+    def __init__(self, alpha: float) -> None:
         self.alpha = alpha
         self.low_pass_filter = LowPassFilter(alpha)
         self.prev_raw_value = None
@@ -123,7 +118,6 @@ class SerialReader:
         self.NUM_OF_SENSORS = NUM_OF_SENSORS
         self.thread = Thread(target=self.read_from_serial)
         self.thread.start()
-        print("Serial reader started")
 
     def read_from_serial(self) -> None:
         while not self.stop_thread:
@@ -147,7 +141,6 @@ class SerialReader:
         if self.thread.is_alive():
             self.thread.join()
         self.ser.close()
-        print("Serial reader stopped")
 
 class CombFilter:
     def __init__(self, delay: int, gain: float) -> None:
@@ -177,10 +170,11 @@ class DataPlotter:
         self.comb_filters = [CombFilter(delay=FILTER_DELAY, gain=FILTER_GAIN) for _ in range(reader.NUM_OF_SENSORS)]
         self.low_pass_filters = [LowPassFilter(alpha=self.alpha) for _ in range(reader.NUM_OF_SENSORS)]
         self.high_pass_filters = [HighPassFilter(alpha=self.alpha) for _ in range(reader.NUM_OF_SENSORS)]
-        self.control_variable = None
         self.setup_ui()
         self.setup_plot()
         QApplication.instance().aboutToQuit.connect(self.reader.stop)
+        self.recent_values = deque(maxlen=5)
+        self.recent_counter = Counter()
 
     def update_and_reset_states(self, state: State, value: str) -> None:
         """Update state threshold and reset counter"""
@@ -286,7 +280,7 @@ class DataPlotter:
         self.timer.timeout.connect(self.update_and_reset_states)
         self.timer.start(500)  # Interval in milliseconds (0.5 seconds)
 
-    def update_alpha(self, value):
+    def update_alpha(self, value) -> None:
         self.alpha = value / 100.0
         self.alpha_label.setText(f"Alpha: {self.alpha}")
         for lp_filter in self.low_pass_filters:
@@ -309,13 +303,13 @@ class DataPlotter:
                 p.enableAutoRange(axis='y')
             self.is_auto_scaled = True
 
-    def update_delay(self, value):
+    def update_delay(self, value) -> None:
         value = int(value)
         self.delay_label.setText(f"Delay: {value}")
         for filter in self.comb_filters:
             filter.delay = value
 
-    def update_gain(self, value):
+    def update_gain(self, value) -> None:
         self.gain_label.setText(f"Gain: {value/100}")
         for filter in self.comb_filters:
             filter.gain = value / 100
@@ -360,7 +354,15 @@ class DataPlotter:
         data_array[-1] = new_value
         return data_array
 
+    def put_control_value(self) -> None:
+        with queue_lock:
+            while not control_queue.empty():
+                control_queue.get()
+            control_queue.put((greater_of_two_states(self.state_manager1.get_state_with_highest_count(), self.state_manager2.get_state_with_highest_count()))[0])
+
     def update(self) -> None:
+
+        most_common_value = "" # !!!!!!!!
 
         while not self.reader.data_queue.empty():
             data = self.reader.data_queue.get()
@@ -373,7 +375,6 @@ class DataPlotter:
                 filtered_value = self.low_pass_filters[i].filter(filtered_value)  # Apply Low Pass filter
                 filtered_value = self.high_pass_filters[i].filter(filtered_value)  # Apply High Pass filter
 
-                
                 # Update state of the sensor based on filtered value
                 if i == 0:
                     self.state_manager1.update_state(filtered_value)
@@ -382,31 +383,37 @@ class DataPlotter:
 
                 self.value_data[i] = self.shift_and_append(self.value_data[i], filtered_value)
 
-                # self.curve[i].setData(self.time_data, self.value_data[i])
+                self.recent_values.append((greater_of_two_states(self.state_manager1.get_state_with_highest_count(), self.state_manager2.get_state_with_highest_count()))[0])
+                if len(self.recent_values) == 5:
+                    old_value = self.recent_values.popleft()
+                    self.recent_counter[old_value] -= 1
+                    if self.recent_counter[old_value] == 0:
+                        del self.recent_counter[old_value]
+                self.recent_counter[filtered_value] += 1
 
-                # sensor1_info = self.state_manager1.update_state(filtered_value)
-                # sensor2_info = self.state_manager2.update_state(filtered_value)
-                # print(sensor1_info + ' || ' + sensor2_info)
+                if len(self.recent_values) == 5:
+                    most_common_value = self.recent_counter.most_common(1)[0][0]
+                put_control_value(most_common_value)
 
-                # print(self.state_manager1.get_state_with_highest_count())
-                # print(greater_of_two_states(self.state_manager1.get_state_with_highest_count(), self.state_manager2.get_state_with_highest_count())[0])
-                # control_queue.put((greater_of_two_states(self.state_manager1.get_state_with_highest_count(), self.state_manager2.get_state_with_highest_count()))[0])
-                # print(control_queue.qsize())
-                self.control_variable = (greater_of_two_states(self.state_manager1.get_state_with_highest_count(), self.state_manager2.get_state_with_highest_count()))[0]
-                print ("in-filter control =", self.control_variable)
-        
-    def start_game(self) -> None:
-        game.run_game(self.control_variable)
-    # game.run_game(control_queue)
+                # put_control_value((greater_of_two_states(self.state_manager1.get_state_with_highest_count(), self.state_manager2.get_state_with_highest_count()))[0])
+                print(most_common_value)
+                print(self.recent_values.most_common(1)[0][0])
+                print(self.recent_values)
+                print(control_queue.qsize())
+
+
+                
 
     def start(self) -> None:
         QApplication.instance().exec_()
 
-    def get(self) -> str:
-        return self.control_variable
+def put_control_value(value):
+    with queue_lock:
+        while not control_queue.empty():
+            control_queue.get()
+        control_queue.put(value)
 
 def greater_of_two_states(a, b) -> State:
-    # return max(a[1], b[1])
     if a[1] > b[1]:
         return a
     else:
@@ -426,121 +433,18 @@ def find_com_port(vendor_id=None, product_id=None, device_description=None) -> o
 
     raise ValueError("Device not found")
 
-# def start_game():
-#     game.run_game(control_variable)
-#     # game.run_game(control_queue)
-
-class Game:
-    def __init__(self, plotter) -> None:
-        self.plotter = plotter
-        self.control_variable = None
-        self.thread = Thread(target=plotter.start_game)
-        self.stop_thread = False
-        self.thread.start()
-        print("Game thread started")
-
-    def run_game(self):
-
-        # General setup
-        pygame.init()
-        clock = pygame.time.Clock()
-
-        # Setting up the main window
-        screen_width = 800
-        screen_height = 600
-        screen = pygame.display.set_mode((screen_width, screen_height))
-
-        # Game Rectangles
-        paddle = pygame.Rect(screen_width // 2 - 50, screen_height - 20, 100, 10)
-        ball = pygame.Rect(screen_width // 2 - 15 // 2, screen_height // 2 - 15 // 2, 15, 15)
-
-        # Blocks
-        block_width = 60
-        block_height = 30
-        blocks = [pygame.Rect(50 + 70 * i, 50 + 50 * j, block_width, block_height) for i in range(10) for j in range(4)]
-
-        # Game Variables
-        ball_dy = 3
-        ball_dx = 3
-        paddle_speed = 4
-        run_game = True
-
-        # Game loop
-        while run_game and self.stop_thread == False:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    run_game = False
-
-
-                # Paddle movement
-            try:
-                # control = control_queue.get_nowait()
-                control = self.control_variable.get()
-                print("in-game control = {}", control)
-
-                if control == "Flexion" and paddle.left > 0:
-                    print("left")   
-                    # control_queue.clear()
-                    paddle.move_ip(-paddle_speed, 0)
-                elif control == "Extension" and paddle.right < screen_width:
-                    print("right")
-                    # control_queue.clear()
-                    paddle.move_ip(paddle_speed, 0)
-            except queue.Empty:
-                pass
-            
-            # Ball movement
-            ball.move_ip(ball_dx, ball_dy)
-
-            # Ball and wall collision
-            if ball.left < 0 or ball.right > screen_width:
-                ball_dx *= -1
-            if ball.top < 0:
-                ball_dy *= -1
-            # if ball.bottom > screen_height:
-            #     run_game = False  # Game over when ball hits bottom
-
-            # Ball and paddle collision
-            if ball.colliderect(paddle):
-                ball_dy *= -1
-
-            # Ball and block collision
-            hit_index = ball.collidelist(blocks)
-            if hit_index != -1:
-                hit_rect = blocks.pop(hit_index)
-                if ball_dx > 0:
-                    ball.right = hit_rect.left
-                else:
-                    ball.left = hit_rect.right
-                ball_dy *= -1
-
-            # Drawing everything
-            screen.fill((0, 0, 0))
-            pygame.draw.rect(screen, pygame.Color('white'), paddle)
-            pygame.draw.rect(screen, pygame.Color('white'), ball)
-            for block in blocks:
-                pygame.draw.rect(screen, pygame.Color('white'), block)
-
-            pygame.display.flip()
-            clock.tick(60)
-
-        pygame.quit()
-        
-        self.stop_thread = True
-        if self.thread.is_alive():
-            self.thread.join()
-        self.thread.close()
-        print("Game thread closed")
-
-        sys.exit()
+def start_game() -> None:
+    game.run_game(control_queue)
 
 if __name__ == "__main__":
     try:
         port = find_com_port(device_description='Arduino')
-        reader = SerialReader(port, 115200, NUM_OF_SENSORS)
-        plotter = DataPlotter(reader)
-        Game(plotter).run_game()
+        reader = SerialReader(port, BAUD_RATE, NUM_OF_SENSORS)
+
+        game_thread = threading.Thread(target=start_game)
+        game_thread.start()
  
+        plotter = DataPlotter(reader)
         plotter.start()
 
     except ValueError as e:
