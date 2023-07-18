@@ -381,7 +381,7 @@ class DataPlotter:
 
                 put_control_value((greater_of_two_states(self.state_manager1.get_state_with_highest_count(), self.state_manager2.get_state_with_highest_count()))[0])
 
-                print(control_queue.qsize())
+                # print(control_queue.qsize())
 
                 
 
