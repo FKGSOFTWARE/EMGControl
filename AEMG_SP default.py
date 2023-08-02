@@ -8,10 +8,12 @@ import logging
 from PyQt5.QtWidgets import QApplication, QVBoxLayout, QPushButton, QLineEdit, QLabel, QWidget
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
+from serial.tools import list_ports
 
+NUM_OF_SENSORS = 2  # Number of sensors connected to the Arduino
 BUFFER_SIZE = 1024  # Buffer size for serial port reading
 RECORD_DELAY = 3000  # Delay before recording starts (ms)
-RECORD_DURATION = 5000  # Duration of recording (ms)
+RECORD_DURATION = 30000  # Duration of recording (ms)
 
 sensor_placement_dict = {1:"Outer forearm sensor value (1)", 2: "Inner forearm sensor value (2)"} # ! Update if more sensors are added
 
@@ -148,8 +150,24 @@ class DataPlotter:
     def start(self) -> None:
         QApplication.instance().exec_()
 
+def find_com_port(vendor_id=None, product_id=None, device_description=None):
+    com_ports = list_ports.comports()
+
+    for port in com_ports:
+        if vendor_id and port.vid != vendor_id:
+            continue
+        if product_id and port.pid != product_id:
+            continue
+        if device_description and device_description not in port.description:
+            continue
+        return port.device
+
+    raise ValueError("Device not found")
+
 if __name__ == "__main__":
     num_sensors = 2  # ! Number of sensors - check main.cpp for number expected
-    reader = SerialReader('COM5', 115200, num_sensors)
+    port = find_com_port(device_description='Arduino')
+    reader = SerialReader(port, 115200, NUM_OF_SENSORS)
+    # reader = SerialReader('COM8', 115200, num_sensors)
     plotter = DataPlotter(reader)
     plotter.start()
