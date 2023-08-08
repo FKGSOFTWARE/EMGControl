@@ -9,13 +9,16 @@ from PyQt5.QtWidgets import QApplication, QVBoxLayout, QPushButton, QLineEdit, Q
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
 from serial.tools import list_ports
+import datetime
+import time
 
 NUM_OF_SENSORS = 2  # Number of sensors connected to the Arduino
 BUFFER_SIZE = 1024  # Buffer size for serial port reading
 RECORD_DELAY = 3000  # Delay before recording starts (ms)
-RECORD_DURATION = 30000  # Duration of recording (ms)
+RECORD_DURATION = 5000  # Duration of recording (ms)
 
 sensor_placement_dict = {1:"Outer forearm sensor value (1)", 2: "Inner forearm sensor value (2)"} # ! Update if more sensors are added
+
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -114,7 +117,8 @@ class DataPlotter:
         if file_title:
             file_path = os.path.join('output', 'gesture recordings', f'{file_title}.csv')
             with self.record_lock:
-                df = pd.DataFrame(self.record_data, columns=['timestamp'] + [sensor_placement_dict[i+1] for i in range(self.reader.num_sensors)])
+                df = pd.DataFrame(self.record_data, columns=['global_time', 'timestamp'] + [sensor_placement_dict[i+1] for i in range(self.reader.num_sensors)])
+
             df.to_csv(file_path, index=False, chunksize=1000)
             self.label.setText(f'Saved recording as {file_title}.csv')
         else:
@@ -141,8 +145,15 @@ class DataPlotter:
             data = self.reader.data_queue.get()
             self.time_data = self.shift_and_append(self.time_data, data[0])
             if self.is_recording:
+                # Get the current formatted global time
+                current_time_seconds = time.time()
+                # current_datetime = datetime.datetime.fromtimestamp(current_time_seconds)
+                # formatted_time = current_datetime.strftime('%H:%M:%S.%f')[:-3]
+
                 with self.record_lock:
-                    self.record_data.append(data)
+                    # Append formatted_time to the record data
+                    self.record_data.append([current_time_seconds] + data)
+
             for i, value in enumerate(data[1:]):
                 self.value_data[i] = self.shift_and_append(self.value_data[i], value)
                 self.curve[i].setData(self.time_data, self.value_data[i])
