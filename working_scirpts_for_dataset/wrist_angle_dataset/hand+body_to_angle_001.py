@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # Specify your file path here
-file_path = "1body_and_hand_landmarks_data_TimeVideo_20230808_160537.csv"
+file_path = "working_scirpts_for_dataset/wrist_angle_dataset/_output/body_and_hand_landmarks_data_TimeVideo_20230808_160537.csv"
 
 def calculate_angle(hand_landmarks, pose_landmarks):
     # Extracting the required points
@@ -52,15 +52,15 @@ def process_file(file_path):
             angle = None
 
         angle_data.extend([angle] * len(timestamp_data))
-        ta_data.append({"global_timestamp_ms": timestamp, "angle": angle if angle else "x"})
+        ta_data.append({"global_timestamp_ms": timestamp, "angle": angle if angle else ""})
 
     # Adding the angle data as a new column
     data_df['angle'] = angle_data
     ta_df = pd.DataFrame(ta_data)
 
     # Saving the updated DataFrame to CSV files
-    updated_file_path = "updated_" + file_path.split("/")[-1]
-    ta_file_path = "TA_" + file_path.split("/")[-1]
+    updated_file_path = "working_scirpts_for_dataset/wrist_angle_dataset/_output/updated_" + file_path.split("/")[-1]
+    ta_file_path = "working_scirpts_for_dataset/wrist_angle_dataset/_output/TA_" + file_path.split("/")[-1]
     
     data_df.to_csv(updated_file_path, index=False)
     ta_df.to_csv(ta_file_path, index=False)
