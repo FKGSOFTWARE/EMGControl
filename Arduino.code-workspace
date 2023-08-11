@@ -15,6 +15,10 @@
 			"colliderect",
 			"pygame",
 			"pynput"
-		]
+		],
+		"[python]": {
+			"editor.defaultFormatter": "ms-python.black-formatter"
+		},
+		"python.formatting.provider": "none"
 	}
 }
