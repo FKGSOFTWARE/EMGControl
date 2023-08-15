@@ -42,12 +42,8 @@ def plot_data(dataset, filepath):
 def main():
     # Define the paths to your CSV files here
     csv_paths = [
-        "working_scirpts_for_dataset/wrist_angle_dataset/previous_recordings/wrist+angle_recording_1691760899/merged_dataset_closest_timestep.csv",
-        "working_scirpts_for_dataset/wrist_angle_dataset/previous_recordings/wrist+angle_recording_1691760899/merged_dataset_linear_regression.csv",
-        "working_scirpts_for_dataset/wrist_angle_dataset/previous_recordings/wrist+angle_recording_1691760899/merged_dataset_version_2_linear_regression+interpolation.csv",
-        "working_scirpts_for_dataset/wrist_angle_dataset/previous_recordings/wrist+angle_recording_1691760899/merged_interpolated_dataset_closest_timestep.csv"
-    ]
-
+"working_scirpts_for_dataset/wrist_angle_dataset/_output/linear_interpolation_TA_body_and_hand_landmarks_data_TimeVideo_20230808_160537_2023-08-15_13-13-42.csv",
+"working_scirpts_for_dataset/wrist_angle_dataset/_output/linear_interpolation_TA_body_and_hand_landmarks_data_TimeVideo_20230808_160537_2023-08-15_13-13-47.csv"]
     for path in csv_paths:
         data = pd.read_csv(path)
         plot_data(data, path)
