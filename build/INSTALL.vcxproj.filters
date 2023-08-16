@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\fkgde\Documents\PlatformIO\Projects\Internship 2023\build\CMakeFiles\1023b1b23d5c1f426589055858cd1a62\INSTALL_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{32DFF26A-6131-363B-9787-03466FB3CC47}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

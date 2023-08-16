@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\fkgde\Documents\PlatformIO\Projects\Internship 2023\.pio\libdeps\nano_every\Unity\src\unity.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\fkgde\Documents\PlatformIO\Projects\Internship 2023\.pio\libdeps\nano_every\Unity\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{8798007B-436B-3A91-83DB-ED2FB38F8A0A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
