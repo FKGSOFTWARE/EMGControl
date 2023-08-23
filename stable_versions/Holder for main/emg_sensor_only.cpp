@@ -46,8 +46,6 @@ void setup() {
   for(int i = 0; i < NUMBER_OF_SENSORS; i++) {
     pinMode(analog_pins[i], INPUT);
   }
-
-  pinMode(10, INPUT);
   
   Serial.begin(115200);  // Start serial communication at 115200 bps
 }
@@ -65,10 +63,6 @@ void loop() {
     dataString += "," + String(val);
   }
 
-  int touchVal = digitalRead(10);
-
   // Print the data string to the Serial Monitor
-  Serial.println(dataString + "," + touchVal);
-  // delay(200);
-
+  Serial.println(dataString);
 }
