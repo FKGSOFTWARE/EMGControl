@@ -15,7 +15,7 @@ import time
 NUM_OF_SENSORS = 3  # Number of sensors connected to the Arduino
 BUFFER_SIZE = 1024  # Buffer size for serial port reading
 RECORD_DELAY = 3000  # Delay before recording starts (ms)
-RECORD_DURATION = 600000  # Duration of recording (ms)
+RECORD_DURATION = 5000  # Duration of recording (ms)
 
 sensor_placement_dict = {1:"Outer forearm sensor value (1)", 2: "Inner forearm sensor value (2)", 3: "Load sensor value (3)"} # ! Update if more sensors are added
 
@@ -40,7 +40,9 @@ class SerialReader:
                     line = self.ser.readline().decode("utf-8").strip()
                     if not line:
                         continue
-                    data = list(map(float, line.split(",")))
+                    # data = list(map(float, line.split(",")))
+                    data = list(map(float, filter(None, line.split(","))))
+
                     if len(data) != self.num_sensors + 1:  # expect timestamp + n sensor values
                         raise ValueError
                     self.data_queue.put(data)
