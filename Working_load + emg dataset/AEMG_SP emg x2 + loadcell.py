@@ -15,7 +15,7 @@ import time
 NUM_OF_SENSORS = 3  # Number of sensors connected to the Arduino
 BUFFER_SIZE = 1024  # Buffer size for serial port reading
 RECORD_DELAY = 3000  # Delay before recording starts (ms)
-RECORD_DURATION = 5000  # Duration of recording (ms)
+RECORD_DURATION = 600000  # Duration of recording (ms)
 
 sensor_placement_dict = {1:"Outer forearm sensor value (1)", 2: "Inner forearm sensor value (2)", 3: "Load sensor value (3)"} # ! Update if more sensors are added
 
