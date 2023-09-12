@@ -5,11 +5,11 @@ import numpy as np
 import pandas as pd
 import time
 
-time_from_video_timestamp = "16:05:37.246"
-date_of_video_timestamp = "2023-08-08"
+time_from_video_timestamp = "16:34:42.565"
+date_of_video_timestamp = "2023-09-08"
 
 folder_in_use = "working_scirpts_for_dataset/wrist_angle_dataset/__input/"
-filename = "TimeVideo_20230808_160537.mp4"
+filename = "TimeVideo_20230908_163442.mp4"
 file_in_use = folder_in_use + filename
 
 datetime_from_video_timestamp = (

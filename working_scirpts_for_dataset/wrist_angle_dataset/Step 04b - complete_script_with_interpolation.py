@@ -5,8 +5,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 
 # Load the datasets
-arm_angle_df = pd.read_csv("working_scirpts_for_dataset/wrist_angle_dataset/_output/TA_body_and_hand_landmarks_data_TimeVideo_20230808_160537.csv")
-emg_df = pd.read_csv("working_scirpts_for_dataset/wrist_angle_dataset/__input/test in frame.csv")
+arm_angle_df = pd.read_csv("working_scirpts_for_dataset/wrist_angle_dataset/_output/TA_body_and_hand_landmarks_data_TimeVideo_20230908_163442.csv")
+emg_df = pd.read_csv("working_scirpts_for_dataset/wrist_angle_dataset/__input/official mediapipe 10min fixed.csv")
 
 # Convert "x" to NaN and then interpolate
 arm_angle_df['angle'] = pd.to_numeric(arm_angle_df['angle'], errors='coerce')

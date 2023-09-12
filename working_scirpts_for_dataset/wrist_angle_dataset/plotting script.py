@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 import webbrowser
 
 # Directory containing the CSV files
-data_dir = "output/gesture recordings"
+data_dir = "working_scirpts_for_dataset/wrist_angle_dataset/_output"
 
 # Get a sorted list of all CSV files in the directory
 csv_files = sorted([f for f in os.listdir(data_dir) if f.endswith(".csv")])

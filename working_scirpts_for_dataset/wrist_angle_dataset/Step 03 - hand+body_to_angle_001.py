@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # Specify your file path here
-file_path = "working_scirpts_for_dataset/wrist_angle_dataset/_output/body_and_hand_landmarks_data_TimeVideo_20230808_160537.csv"
+file_path = "working_scirpts_for_dataset/wrist_angle_dataset/_output/body_and_hand_landmarks_data_TimeVideo_20230908_163442.csv"
 
 def calculate_angle(hand_landmarks, pose_landmarks):
     # Extracting the required points
