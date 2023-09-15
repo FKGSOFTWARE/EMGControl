@@ -10,3 +10,4 @@ outdated python scripts
 .working_scirpts_for_dataset/wrist_angle_dataset/_output/body_and_hand_output_TimeVideo_20230908_163442.mp4
 .output/official recordings/official recordings 10min/body_and_hand_output_TimeVideo_20230908_163442.mp4
 .output/official recordings/official recordings 10min/TimeVideo_20230908_163442.mp4
+*.mp4
